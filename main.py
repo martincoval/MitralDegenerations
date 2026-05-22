@@ -1,1 +1,0 @@
-print("Píšu zase další blbost")
