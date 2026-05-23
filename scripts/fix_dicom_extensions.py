@@ -12,6 +12,3 @@ def add_dcm_extension(folder_path:str):
             new_name = item.with_suffix(".dcm")
             item.rename(new_name)
             print(f"Přidána přípona k souboru {item.name}")
-
-if __name__ == "__main__":
-    add_dcm_extension(DICOM_FOLDER)
