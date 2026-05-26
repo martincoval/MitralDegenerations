@@ -43,7 +43,6 @@ def run_full_conversion(input_dir: str = None, output_dir: str = None, verbose: 
     print(f"Input path: {input_path}")
     print(f"Output path: {output_path}")
 
-    # Kontrola vstupní složky
     if not input_path.exists():
         print(f"\nInput folder {input_path} nonexistent!")
         print("Creating...")
