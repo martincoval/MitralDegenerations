@@ -69,7 +69,7 @@ def run_full_conversion(input_dir: str = None, output_dir: str = None, verbose: 
         print("=" * 70)
 
         for img_name, data in results.items():
-            print(f"\n 📸 {img_name}:")
+            print(f"\n {img_name}:")
             print(f"Patient: {data['patient_name'] or 'Not found'}")
             print(f"mm/pixel: {data['mm_per_pixel']:.6f}")
             print(f"Original file: {data['original_file']}")
