@@ -9,7 +9,8 @@ IMAGES_DIR = ANONYMIZED_DIR / "images"
 
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.dicom_processor import process_all_dicoms
+from controllers.conversion_controller import process_all_dicoms
+
 
 def add_dcm_extension(folder_path: Path) -> None:
     print("\n File extension control...")
