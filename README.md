@@ -31,16 +31,18 @@ project/
 └── requirements.txt
 ```
 
-## Stav
 
-- **Funkční a beze změny chování:** `models/patient_name.py`, `models/calibration.py`,
-  `utils/image_utils.py`, `controllers/conversion_controller.py`, `scripts/run_conversion.py`
-  (pokrývá UC-01, kroky 1-2 a 6 - nahrání, extrakce metadat, export anonymizovaného snímku).
-- **Kostry k doplnění (byly prázdné i v původní struktuře):** `models/patient.py`
-  (vyhledávání pacienta a historie - UC-01 krok 3-5, UC-03), `models/measurement.py`
-  a `models/acvim_classification.py` (UC-02 kroky 3-5), `controllers/diagnostic_controller.py`
-  (napojení na AI model - UC-02 krok 1-2), `views/*` (GUI - framework zatím není
-  v `requirements.txt`).
+## Aktuální stav projektu
+
+- **Anonymizace a příprava dat (UC-01):** Plně funkční skripty pro lokální zpracování souborů DICOM. Zajišťují bezpečné odstranění citlivých údajů pacientů, pixelovou kalibraci a export dat připravených pro cloudové zpracování v prostředí Google Colab.
+- **AI segmentace a klasifikace (UC-02 / UC-03):** Implementované modely pro parasternální krátkou (DogPSAX) a dlouhou osu (DogPLAX) založené na adaptované architektuře SAMUS. Kód a trénovací skripty jsou optimalizovány pro běh v cloudu a propojeny s vyhodnocovací logikou ACVIM.
+
+## Spuštění lokální dávkové konverze
+
+Pro spuštění konverze a anonymizace surových DICOM souborů z adresáře `data/raw_dicom/` spusťte:
+
+```bash
+python scripts/run_conversion.py
 
 ## Spuštění dávkové konverze
 
