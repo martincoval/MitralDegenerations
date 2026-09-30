@@ -2,12 +2,12 @@ import json
 import os
 import re
 
-OUT_BASE = "/Users/lindamartincova/PycharmProjects/MitralDegenerations/data/samus_dataset/Echocardiography-DogPSAX"
+OUT_BASE = "/Users/lindamartincova/PycharmProjects/MitralDegenerations/data/samus_dataset/Echocardiography-DogPLAX"
 MAIN_PATIENT = "/Users/lindamartincova/PycharmProjects/MitralDegenerations/data/samus_dataset/MainPatient"
-SUBTASK = "Echocardiography-DogPSAX"
+SUBTASK = "Echocardiography-DogPLAX"
 
 TEST_EXAM_IDS = {"003", "009", "015", "021"}
-VAL_EXAM_IDS = {"002", "013"}  # 2 vyšetření na validaci - uprav, pokud chceš jiná
+VAL_EXAM_IDS = {"002", "013"}  # uprav, pokud chceš jiná vyšetření na validaci
 
 with open(os.path.join(OUT_BASE, "manifest.json")) as f:
     manifest = json.load(f)
@@ -37,16 +37,15 @@ print(f"Test: {len(test_names)} snímků -> {test_names}")
 def write_train_val(filename, names):
     with open(os.path.join(MAIN_PATIENT, filename), "w") as f:
         for name in names:
-            f.write(f"1/{SUBTASK}/{name}\n")
-            f.write(f"2/{SUBTASK}/{name}\n")
+            f.write(f"1/{SUBTASK}/{name}\n")  # jen jedna třída (LVIDd -> class_id 1)
 
 def write_test(filename, names):
     with open(os.path.join(MAIN_PATIENT, filename), "w") as f:
         for name in names:
             f.write(f"{SUBTASK}/{name}\n")
 
-write_train_val("train-DogPSAX.txt", train_names)
-write_train_val("val-DogPSAX.txt", val_names)
-write_test("test-DogPSAX.txt", test_names)
+write_train_val("train-DogPLAX.txt", train_names)
+write_train_val("val-DogPLAX.txt", val_names)
+write_test("test-DogPLAX.txt", test_names)
 
 print("\nHotovo")

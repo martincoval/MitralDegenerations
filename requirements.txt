@@ -1,8 +1,25 @@
-# Základní knihovny
-pydicom>=3.0.0
-numpy>=2.4.6
-opencv-python>=4.8.0
+# Core numerika a data
+numpy
+pandas
 
-# Pro práci s daty a JSON
-pillow>=10.0.0
-tqdm>=4.65.0
+# Obrázky a DICOM
+opencv-python-headless
+pydicom
+pillow
+scikit-image
+
+# Deep learning
+torch
+torchvision
+einops
+
+# Vizualizace
+matplotlib
+seaborn
+
+# Speciální
+hausdorff
+batchgenerators==0.21
+
+# Testy (jen pokud skutečně máš pytest testy)
+pytest

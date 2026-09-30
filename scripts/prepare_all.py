@@ -15,7 +15,7 @@ TASKS = {
     "PLAX": {
         "src_dir": "/Users/lindamartincova/PycharmProjects/MitralDegenerations/data/PLAX",
         "subtask_name": "Echocardiography-DogPLAX",
-        "label_to_id": {"lv": 1},
+        "label_to_id": {"left_ventriculus": 1},
         "frame_code": "PLAX",
     },
 }

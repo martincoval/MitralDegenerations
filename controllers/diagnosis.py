@@ -1,79 +1,82 @@
-from dataclasses import dataclass
-from typing import Optional
+import cv2
+import numpy as np
+from typing import Optional, Dict, Any
 
 
-LVIDD_ALLOMETRIC_EXPONENT = 0.294
-LVIDDN_THRESHOLD_B2 = 1.7
-LA_AO_THRESHOLD_B2 = 1.6
+def rescale_calibration(original_mm_per_pixel: float, letterbox_scale: float) -> float:
+    """Přepočet kalibrace z originálního rozlišení na velikost masky/modelu."""
+    return original_mm_per_pixel / letterbox_scale
 
 
-@dataclass
-class MeasurementResult:
-    lvidd_mm: Optional[float]
-    la_mm: Optional[float]
-    ao_mm: Optional[float]
-    weight_kg: Optional[float]
+def get_diameter_from_mask(mask: np.ndarray, mm_per_pixel: float) -> Optional[Dict[str, float]]:
+    """
+    Z binární masky (0/1) vyfituje elipsu a vrátí rozměry v mm.
+    """
+    mask_uint8 = (mask.astype(np.uint8)) * 255
+    contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+    largest = max(contours, key=cv2.contourArea)
+    if len(largest) < 5:
+        # Pokud je kontura moc malá pro elipsu, vrátíme alespoň ekvivalentní průměr z plochy
+        pixels = int(mask.sum())
+        diameter_mm = 2.0 * np.sqrt(pixels / np.pi) * mm_per_pixel
+        return {
+            "minor_axis_mm": diameter_mm,
+            "major_axis_mm": diameter_mm,
+            "pixel_count": pixels,
+        }
+
+    (center, (minor_axis, major_axis), angle) = cv2.fitEllipse(largest)
+    return {
+        "minor_axis_mm": minor_axis * mm_per_pixel,
+        "major_axis_mm": major_axis * mm_per_pixel,
+        "pixel_count": int(mask.sum()),
+    }
 
 
-@dataclass
-class DiagnosisResult:
-    lvidd_n: Optional[float]
-    la_ao_ratio: Optional[float]
-    stage: str  # "B1", "B2", nebo "NELZE VYHODNOTIT"
-    reason: Optional[str] = None  # důvod, pokud NELZE VYHODNOTIT
+def evaluate_patient_diagnosis(
+        aorta_mask: np.ndarray,
+        la_mask: np.ndarray,
+        lv_mask: np.ndarray,
+        original_mm_per_pixel: float,
+        scale: float = 0.25,
+        body_weight_kg: float = 10.0
+) -> Dict[str, Any]:
+    """
+    Kompletní vyhodnocení vyšetření pro stanovení ACVIM stadia MMVD.
+    """
+    calib = rescale_calibration(original_mm_per_pixel, scale)
 
+    ao_metrics = get_diameter_from_mask(aorta_mask, calib)
+    la_metrics = get_diameter_from_mask(la_mask, calib)
+    lv_metrics = get_diameter_from_mask(lv_mask, calib)
 
-def calculate_lvidd_n(lvidd_mm: float, weight_kg: float) -> float:
-    lvidd_cm = lvidd_mm / 10
-    return lvidd_cm / (weight_kg ** LVIDD_ALLOMETRIC_EXPONENT)
+    la_ao_ratio = 0.0
+    if ao_metrics and ao_metrics["minor_axis_mm"] > 0:
+        # Pro LA/Ao se obvykle porovnává majoritní osa nebo průměr
+        la_ao_ratio = la_metrics["major_axis_mm"] / ao_metrics["major_axis_mm"] if la_metrics else 0.0
 
+    lvidd_mm = lv_metrics["major_axis_mm"] if lv_metrics else 0.0
+    # Normalizace LVIDd (allometrické škálování podle hmotnosti, např. LVIDdN)
+    lviddn = lvidd_mm / (body_weight_kg ** 0.294) if body_weight_kg > 0 else 0.0
 
-def calculate_la_ao_ratio(la_mm: float, ao_mm: float) -> float:
-    return la_mm / ao_mm
+    # ACVIM logika
+    # B1: bez kardiomegalie (LA/Ao < 1.6, LVIDdn < 1.7)
+    # B2: kardiomegalie (LA/Ao >= 1.6 a LVIDdn >= 1.7)
+    stage = "B1"
+    recommendation = "Pacient ve stádiu B1. Kontrola za 6–12 měsíců, farmakoterapie není indikována."
 
+    if la_ao_ratio >= 1.6 and lviddn >= 1.7:
+        stage = "B2"
+        recommendation = "Pacient ve stádiu B2 (kardiomegalie přítomna). Indikováno zahájení podávání pimobendanu."
 
-def classify_stage(measurement: MeasurementResult) -> DiagnosisResult:
-    m = measurement
-
-    missing = []
-    if m.lvidd_mm is None:
-        missing.append("LVIDd")
-    if m.la_mm is None:
-        missing.append("LA")
-    if m.ao_mm is None:
-        missing.append("Ao")
-    if m.weight_kg is None:
-        missing.append("hmotnost")
-
-    if missing:
-        return DiagnosisResult(
-            lvidd_n=None,
-            la_ao_ratio=None,
-            stage="NELZE VYHODNOTIT",
-            reason=f"Chybí hodnoty: {', '.join(missing)}",
-        )
-
-    lvidd_n = calculate_lvidd_n(m.lvidd_mm, m.weight_kg)
-    la_ao = calculate_la_ao_ratio(m.la_mm, m.ao_mm)
-
-    is_b2 = (lvidd_n >= LVIDDN_THRESHOLD_B2) and (la_ao >= LA_AO_THRESHOLD_B2)
-    stage = "B2" if is_b2 else "B1"
-
-    return DiagnosisResult(
-        lvidd_n=round(lvidd_n, 3),
-        la_ao_ratio=round(la_ao, 3),
-        stage=stage,
-    )
-
-
-if __name__ == "__main__":
-    test_case = MeasurementResult(
-        lvidd_mm=32.9,
-        la_mm=22.1,
-        ao_mm=15.1,
-        weight_kg=9.6,
-    )
-    result = classify_stage(test_case)
-    print(f"LVIDDn: {result.lvidd_n}")
-    print(f"LA/Ao: {result.la_ao_ratio}")
-    print(f"Stádium: {result.stage}")
+    return {
+        "LA_mm": la_metrics["major_axis_mm"] if la_metrics else 0.0,
+        "Ao_mm": ao_metrics["major_axis_mm"] if ao_metrics else 0.0,
+        "LA_Ao_ratio": la_ao_ratio,
+        "LVIDd_mm": lvidd_mm,
+        "LVIDdn": lviddn,
+        "stage": stage,
+        "recommendation": recommendation
+    }
